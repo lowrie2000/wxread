@@ -12,7 +12,9 @@ from config import data, headers, cookies, READ_NUM, PUSH_METHOD, book, chapter
 
 # 配置日志格式
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)-8s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)-8s - %(message)s')
 
 # 加密盐及其它默认值
 KEY = "3c5c8717f3daf09iop3423zafeqoi"
@@ -24,7 +26,9 @@ FIX_SYNCKEY_URL = "https://weread.qq.com/web/book/chapterInfos"
 
 def encode_data(data):
     """数据编码"""
-    return '&'.join(f"{k}={urllib.parse.quote(str(data[k]), safe='')}" for k in sorted(data.keys()))
+    return '&'.join(
+        f"{k}={urllib.parse.quote(str(data[k]), safe='')}"
+        for k in sorted(data.keys()))
 
 
 def cal_hash(input_string):
@@ -35,24 +39,41 @@ def cal_hash(input_string):
     _19094e = length - 1
 
     while _19094e > 0:
-        _7032f5 = 0x7fffffff & (_7032f5 ^ ord(input_string[_19094e]) << (length - _19094e) % 30)
-        _cc1055 = 0x7fffffff & (_cc1055 ^ ord(input_string[_19094e - 1]) << _19094e % 30)
+        _7032f5 = 0x7fffffff & (
+            _7032f5 ^ ord(
+                input_string[_19094e]) << (
+                length -
+                _19094e) %
+            30)
+        _cc1055 = 0x7fffffff & (_cc1055 ^ ord(
+            input_string[_19094e - 1]) << _19094e % 30)
         _19094e -= 2
 
     return hex(_7032f5 + _cc1055)[2:].lower()
 
+
 def get_wr_skey():
     """刷新cookie密钥"""
-    response = requests.post(RENEW_URL, headers=headers, cookies=cookies,
-                             data=json.dumps(COOKIE_DATA, separators=(',', ':')))
+    response = requests.post(
+        RENEW_URL,
+        headers=headers,
+        cookies=cookies,
+        data=json.dumps(
+            COOKIE_DATA,
+            separators=(
+                ',',
+                ':')))
     for cookie in response.headers.get('Set-Cookie', '').split(';'):
         if "wr_skey" in cookie:
             return cookie.split('=')[-1][:8]
     return None
 
+
 def fix_no_synckey():
     requests.post(FIX_SYNCKEY_URL, headers=headers, cookies=cookies,
-                             data=json.dumps({"bookIds":["3300060341"]}, separators=(',', ':')))
+                  data=json.dumps(
+                      {"bookIds": ["3300060341"]}, separators=(',', ':')))
+
 
 def refresh_cookie():
     logging.info(f"🍪 刷新cookie")
@@ -62,10 +83,11 @@ def refresh_cookie():
         logging.info(f"✅ 密钥刷新成功，新密钥：{new_skey}")
         logging.info(f"🔄 重新本次阅读。")
     else:
-        ERROR_CODE = "❌ 无法获取新密钥或者WXREAD_CURL_BASH配置有误，终止运行。"
+        ERROR_CODE = ("❌ 无法获取新密钥或者WXREAD_CURL_BASH配置有误，终止运行。")
         logging.error(ERROR_CODE)
         push(ERROR_CODE, PUSH_METHOD)
         raise Exception(ERROR_CODE)
+
 
 try:
     refresh_cookie()
@@ -80,12 +102,21 @@ try:
         data['rt'] = thisTime - lastTime
         data['ts'] = int(thisTime * 1000) + random.randint(0, 1000)
         data['rn'] = random.randint(0, 1000)
-        data['sg'] = hashlib.sha256(f"{data['ts']}{data['rn']}{KEY}".encode()).hexdigest()
+        data['sg'] = hashlib.sha256(
+            f"{data['ts']}{data['rn']}{KEY}".encode()).hexdigest()
         data['s'] = cal_hash(encode_data(data))
 
         logging.info(f"⏱️ 尝试第 {index} 次阅读...")
         logging.info(f"📕 data: {data}")
-        response = requests.post(READ_URL, headers=headers, cookies=cookies, data=json.dumps(data, separators=(',', ':')))
+        response = requests.post(
+            READ_URL,
+            headers=headers,
+            cookies=cookies,
+            data=json.dumps(
+                data,
+                separators=(
+                    ',',
+                    ':')))
         resData = response.json()
         logging.info(f"📕 response: {resData}")
 

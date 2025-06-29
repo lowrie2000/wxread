@@ -5,7 +5,8 @@ import time
 import json
 import requests
 import logging
-from config import PUSHPLUS_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_BOT_TOKEN, WXPUSHER_SPT
+from config import (PUSHPLUS_TOKEN, TELEGRAM_CHAT_ID,
+                    TELEGRAM_BOT_TOKEN, WXPUSHER_SPT)
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,8 @@ class PushNotification:
             'http': os.getenv('http_proxy'),
             'https': os.getenv('https_proxy')
         }
-        self.wxpusher_simple_url = "https://wxpusher.zjiecode.com/api/send/message/{}/{}"
+        self.wxpusher_simple_url = ("https://wxpusher.zjiecode.com/api/send/message/"
+                                    "{}/{}")
 
     def push_pushplus(self, content, token):
         """PushPlus消息推送"""
@@ -54,7 +56,8 @@ class PushNotification:
 
         try:
             # 先尝试代理
-            response = requests.post(url, json=payload, proxies=self.proxies, timeout=30)
+            response = requests.post(
+                url, json=payload, proxies=self.proxies, timeout=30)
             logger.info("✅ Telegram响应: %s", response.text)
             response.raise_for_status()
             return True
@@ -68,12 +71,12 @@ class PushNotification:
             except Exception as e:
                 logger.error("❌ Telegram发送失败: %s", e)
                 return False
-    
+
     def push_wxpusher(self, content, spt):
         """WxPusher消息推送（极简方式）"""
         attempts = 5
         url = self.wxpusher_simple_url.format(spt, content)
-        
+
         for attempt in range(attempts):
             try:
                 response = requests.get(url, timeout=30)
