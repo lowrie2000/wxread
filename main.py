@@ -67,42 +67,46 @@ def refresh_cookie():
         push(ERROR_CODE, PUSH_METHOD)
         raise Exception(ERROR_CODE)
 
-refresh_cookie()
-index = 1
-lastTime = int(time.time()) - 30
-while index <= READ_NUM:
-    data.pop('s')
-    data['b'] = random.choice(book)
-    data['c'] = random.choice(chapter)
-    thisTime = int(time.time())
-    data['ct'] = thisTime
-    data['rt'] = thisTime - lastTime
-    data['ts'] = int(thisTime * 1000) + random.randint(0, 1000)
-    data['rn'] = random.randint(0, 1000)
-    data['sg'] = hashlib.sha256(f"{data['ts']}{data['rn']}{KEY}".encode()).hexdigest()
-    data['s'] = cal_hash(encode_data(data))
+try:
+    refresh_cookie()
+    index = 1
+    lastTime = int(time.time()) - 30
+    while index <= READ_NUM:
+        data.pop('s', None)
+        data['b'] = random.choice(book)
+        data['c'] = random.choice(chapter)
+        thisTime = int(time.time())
+        data['ct'] = thisTime
+        data['rt'] = thisTime - lastTime
+        data['ts'] = int(thisTime * 1000) + random.randint(0, 1000)
+        data['rn'] = random.randint(0, 1000)
+        data['sg'] = hashlib.sha256(f"{data['ts']}{data['rn']}{KEY}".encode()).hexdigest()
+        data['s'] = cal_hash(encode_data(data))
 
-    logging.info(f"⏱️ 尝试第 {index} 次阅读...")
-    logging.info(f"📕 data: {data}")
-    response = requests.post(READ_URL, headers=headers, cookies=cookies, data=json.dumps(data, separators=(',', ':')))
-    resData = response.json()
-    logging.info(f"📕 response: {resData}")
+        logging.info(f"⏱️ 尝试第 {index} 次阅读...")
+        logging.info(f"📕 data: {data}")
+        response = requests.post(READ_URL, headers=headers, cookies=cookies, data=json.dumps(data, separators=(',', ':')))
+        resData = response.json()
+        logging.info(f"📕 response: {resData}")
 
-    if 'succ' in resData:
-        if 'synckey' in resData:
-            lastTime = thisTime
-            index += 1
-            time.sleep(30)
-            logging.info(f"✅ 阅读成功，阅读进度：{(index - 1) * 0.5} 分钟")
+        if 'succ' in resData:
+            if 'synckey' in resData:
+                lastTime = thisTime
+                index += 1
+                time.sleep(30)
+                logging.info(f"✅ 阅读成功，阅读进度：{(index - 1) * 0.5} 分钟")
+            else:
+                logging.warning("❌ 无synckey, 尝试修复...")
+                fix_no_synckey()
         else:
-            logging.warning("❌ 无synckey, 尝试修复...")
-            fix_no_synckey()
-    else:
-        logging.warning("❌ cookie 已过期，尝试刷新...")
-        refresh_cookie()
+            logging.warning("❌ cookie 已过期，尝试刷新...")
+            refresh_cookie()
 
-logging.info("🎉 阅读脚本已完成！")
-
-if PUSH_METHOD not in (None, ''):
-    logging.info("⏱️ 开始推送...")
-    push(f"🎉 微信读书自动阅读完成！\n⏱️ 阅读时长：{(index - 1) * 0.5}分钟。", PUSH_METHOD)
+    logging.info("🎉 阅读脚本已完成！")
+    if PUSH_METHOD not in (None, ''):
+        logging.info("⏱️ 开始推送...")
+        push(f"🎉 微信读书自动阅读完成！\n⏱️ 阅读时长：{(index - 1) * 0.5}分钟。", PUSH_METHOD)
+except Exception as e:
+    logging.error(f"脚本运行失败：{e}")
+    if PUSH_METHOD not in (None, ''):
+        push(f"❌ 微信读书自动阅读失败！\n原因：{e}", PUSH_METHOD)
